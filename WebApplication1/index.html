@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Twitter API</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="Content/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="Content/3-col-portfolio.css" rel="stylesheet">
+
+    <!--<script src="Scripts/jquery.min.js"></script>-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="Scripts/bootstrap.bundle.min.js"></script>
+    <script src="Scripts/handlebars.js"></script>
+    <!--<script src="Scripts/jquery.signalR-2.2.2.min.js"></script>-->
+    <script src="Scripts/jquery.signalR-2.2.2.js"></script>
+    <!--<script src="signalr/hubs"></script>-->
+
+    <!-- Script to setup SignalR connection -->
+    <script type="text/javascript">
+        var tiles = 0;
+
+        $(function () {
+            $.connection.hub.logging = true;
+            
+            //var rcvdTweet;
+            var tweetArray = new Array(5);
+
+            var connection = $.hubConnection();
+            proxy = connection.createHubProxy('tweet');
+            proxy.on('sendMessage', onNewTweet);
+
+            
+
+            connection.start().done(function () {
+                console.log("Connection Is Stablished ....................");
+                $("#searchButton").click(onSend);
+            }).fail(function (reason) {
+                console.log("Failed because: " + reason);
+            });
+
+            connection.disconnected(function () {
+                console.log("Server has disconnected***********************");
+                setTimeout(function () {
+                    connection.start();
+                }, 5000); // Restart connection after 5 seconds.
+            });
+
+        });
+
+        function onNewTweet(message) {
+            // validation stuff ...
+            try {
+                tiles += 1;
+                var source = $("#divTemplate").html();
+                var template = Handlebars.compile(source);
+
+                var context = {
+                    src: message.MediaUrl,
+                    stats: message.MatchingTrack,
+                    text: message.Text
+                }
+
+                var divContent = template(context);
+
+                if (tiles < 11) {
+                    $(".mainTile #tweetsDiv").prepend(divContent);
+
+                } else {
+                    $('body').find('#tweetsDiv').children().last().remove();
+                    $(".mainTile #tweetsDiv").prepend(divContent);
+                }
+                
+            } catch (ex) {
+                alert("Exception[On]: " + ex);
+            }
+        };
+
+        function onSend() {
+            try {
+                proxy.invoke('newTweet', $('#searchTerm').val());
+            } catch (ex) {
+                alert("Exception: " + ex);
+            }
+        };
+
+    </script>
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">Search Tweets</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container mainTile">
+
+        <!-- Page Heading -->
+        <h1 class="my-4">
+            Track Your Campaign
+        </h1>
+
+        <div class="row justify-content-center" id="searchBox">
+            <div class="col-lg-3">
+                <div class="input-group">
+                    <input type="text" id="searchTerm" class="form-control" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button class="btn" type="button" id="searchButton">Go!</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    
+        <div class="row" id="tweetsDiv">
+            
+        </div>
+        <!-- /.row -->
+   
+    </div>
+
+    <!-- Handlebars Template -->
+    <script id="divTemplate" type="text/x-handlebars-template">
+        <div class="col-lg-4 col-sm-6 portfolio-item">
+        <div class="card h-100">
+            <a href="#"><img id="tweetImage" class="card-img-top" src="{{src}}" alt=""></a>
+            <div class="card-body">
+                <h4 class="card-title">
+                    <a id="matchingTrack" href="#">Keyword: <span>{{stats}}</span></a>
+                </h4>
+                <p class="card-text" id="tweetText">{{text}}</p>
+            </div>
+        </div>
+    </div>
+    </script>
+    
+
+
+    <!-- /.container -->
+    <!-- Footer -->
+    <footer class="py-5 bg-dark">
+        <div class="container">
+            <p class="m-0 text-center text-white">Copyright &copy; Your Website 2017</p>
+        </div>
+        <!-- /.container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+
+</body>
+
+</html>
